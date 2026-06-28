@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---- builder ----------------------------------------------------------------
-FROM python:3.12-slim AS builder
+FROM python:3.14-slim AS builder
 
 ARG VERSION=0.0.0
 
@@ -30,7 +30,7 @@ RUN sed -i "s/^version = .*/version = \"${VERSION}\"/" pyproject.toml \
     && pip install --no-cache-dir ".[all]"
 
 # ---- runtime ----------------------------------------------------------------
-FROM python:3.12-slim AS runtime
+FROM python:3.14-slim AS runtime
 
 ARG VERSION=0.0.0
 
