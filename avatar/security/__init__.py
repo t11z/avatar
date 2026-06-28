@@ -17,5 +17,5 @@ for _module in pkgutil.iter_modules(__path__):
         continue
     try:
         importlib.import_module(f"{__name__}.{_module.name}")
-    except Exception as exc:  # noqa: BLE001 - optional adapters may fail to import
+    except Exception as exc:
         _log.debug("skipping scanner adapter %s: %s", _module.name, exc)

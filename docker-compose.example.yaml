@@ -1,0 +1,83 @@
+# Example docker-compose for avatar.
+# Copy to docker-compose.yaml and adjust. Put your config at ./config/config.yaml
+# (copy from config.example.yaml) and your secrets in ./.env (copy from .env.example).
+
+services:
+  avatar:
+    # Build locally...
+    build:
+      context: .
+      args:
+        VERSION: "0.1.0"
+    # ...or pull a published image instead of building:
+    # image: ghcr.io/t11z/avatar:latest
+    container_name: avatar
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./config:/config:ro
+      - avatar-data:/data
+    ports:
+      - "8080:8080"   # health: /healthz, /readyz
+      - "9090:9090"   # Prometheus metrics: /metrics
+    # depends_on:
+    #   - ollama
+
+  # ---------------------------------------------------------------------------
+  # Optional supporting services. Uncomment the ones you want.
+  # ---------------------------------------------------------------------------
+
+  # Local LLM runtime. Set OLLAMA_HOST=http://ollama:11434 in .env to use it.
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: ollama
+  #   restart: unless-stopped
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama-data:/root/.ollama
+
+  # OpenTelemetry collector. Point tracing.otlp_endpoint at http://otel-collector:4317.
+  # otel-collector:
+  #   image: otel/opentelemetry-collector-contrib:latest
+  #   container_name: otel-collector
+  #   restart: unless-stopped
+  #   command: ["--config=/etc/otel-collector-config.yaml"]
+  #   volumes:
+  #     - ./deploy/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+  #   ports:
+  #     - "4317:4317"   # OTLP gRPC
+  #     - "4318:4318"   # OTLP HTTP
+
+  # Prometheus. Scrapes avatar:9090 (see deploy/prometheus.yml).
+  # prometheus:
+  #   image: prom/prometheus:latest
+  #   container_name: prometheus
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+  #     - prometheus-data:/prometheus
+  #   ports:
+  #     - "9091:9090"
+
+  # Grafana. Pre-provision the dashboard at deploy/grafana/dashboard.json.
+  # grafana:
+  #   image: grafana/grafana:latest
+  #   container_name: grafana
+  #   restart: unless-stopped
+  #   environment:
+  #     - GF_SECURITY_ADMIN_PASSWORD=admin
+  #   volumes:
+  #     - ./deploy/grafana:/var/lib/grafana/dashboards:ro
+  #     - grafana-data:/var/lib/grafana
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - prometheus
+
+volumes:
+  avatar-data:
+  # ollama-data:
+  # prometheus-data:
+  # grafana-data:
