@@ -62,7 +62,7 @@ async def test_capabilities() -> None:
     assert caps.max_chars == 500
     assert caps.supports_reply is True
     assert caps.supports_media is False
-    assert caps.can_poll_mentions is False
+    assert caps.can_poll_mentions is True
 
 
 async def test_post_two_step_flow() -> None:
@@ -115,13 +115,53 @@ async def test_post_without_credentials_fails_lazily() -> None:
 async def test_construction_tolerates_empty_settings() -> None:
     adapter = ThreadsAdapter({})
     assert adapter.name == "threads"
-    assert adapter.capabilities().can_poll_mentions is False
+    assert adapter.capabilities().can_poll_mentions is True
 
 
-async def test_stream_mentions_raises_not_implemented() -> None:
-    adapter = ThreadsAdapter(dict(_SETTINGS))
+def _mentions_handler(pages: list[list[dict[str, Any]]]):
+    """Return a handler that serves successive /mentions pages, then repeats the last."""
+    calls = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/mentions"):
+            i = min(calls["n"], len(pages) - 1)
+            calls["n"] += 1
+            return httpx.Response(200, json={"data": pages[i]})
+        return httpx.Response(404)
+
+    return handler
+
+
+async def test_stream_mentions_seeds_backlog_then_emits_new() -> None:
+    # Poll 1 = backlog (seeded, not emitted); poll 2 adds a new mention.
+    m1 = {"id": "m1", "username": "alice", "text": "old @bot"}
+    m2 = {
+        "id": "m2",
+        "username": "bob",
+        "text": "@bot hello",
+        "timestamp": "2026-06-28T12:00:00+0000",
+        "permalink": "https://www.threads.net/@bob/post/m2",
+    }
+    settings = dict(_SETTINGS, poll_interval_seconds=0)
+    adapter = _make_adapter(_mentions_handler([[m1], [m1, m2]]), settings)
+
     gen = adapter.stream_mentions()
-    with pytest.raises(NotImplementedError):
+    mention = await gen.__anext__()  # first emitted is m2 (m1 was backlog)
+
+    assert mention.post_id == "m2"
+    assert mention.author_handle == "bob"
+    assert mention.text == "@bot hello"
+    assert mention.url == "https://www.threads.net/@bob/post/m2"
+    assert mention.to_ref().post_id == "m2"  # reply target is the mention id
+
+    await gen.aclose()
+    await adapter.aclose()
+
+
+async def test_stream_mentions_requires_credentials() -> None:
+    adapter = ThreadsAdapter({"id": "threads"})
+    gen = adapter.stream_mentions()
+    with pytest.raises(RuntimeError):
         await gen.__anext__()
 
 

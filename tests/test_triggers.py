@@ -45,6 +45,9 @@ async def test_schedule_fires_once_with_expected_event(monkeypatch) -> None:
 
     # Make croniter deterministic.
     monkeypatch.setattr("croniter.croniter", _FakeCron)
+    # Freeze "now" before the fixed fire time so the delay is positive
+    # regardless of the wall clock (the fire time is hard-coded in _FakeCron).
+    monkeypatch.setattr(trig, "_now", lambda: datetime(2026, 6, 28, 12, 0, tzinfo=UTC))
 
     sleeps: list[float] = []
 
