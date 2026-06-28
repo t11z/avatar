@@ -1,0 +1,42 @@
+# Virtualenvs
+.venv/
+venv/
+
+# VCS
+.git/
+.gitignore
+.gitattributes
+
+# Python caches / build artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Local state & secrets
+*.db
+.env
+.env.*
+config.yaml
+config.local.yaml
+
+# Tests & CI (not needed in the image)
+tests/
+.github/
+deploy/
+
+# Container / compose files
+Dockerfile
+.dockerignore
+docker-compose*.yaml
+docker-compose*.yml
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
